@@ -192,7 +192,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="tab" onclick="switchTab('prototypes',this)">Prototypes</div>
   <div class="tab" onclick="switchTab('activity',this)">Activity</div>
   <div class="tab" onclick="switchTab('phases',this)">Phases</div>
-  <div class="tab" onclick="switchTab('files',this)">Files</div>
 </div>
 
 <div class="main">
@@ -227,8 +226,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="drop-zone-sub">PDF, DOCX, PPTX, images — any file type</div>
       <div class="upload-progress" id="prog-docs"><div class="upload-progress-bar" id="progbar-docs"></div></div>
     </div>
-    <div id="sf-Documents"></div>
-    <div class="doc-grid" id="doc-grid"></div>
+    <div id="doc-grid"></div>
   </div>
 
   <!-- PROTOTYPES -->
@@ -280,21 +278,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="phases" id="phases-grid"></div>
   </div>
 
-  <!-- FILES TAB -->
-  <div class="tab-panel" id="tab-files">
-    <div class="section-hd">
-      <h2>All files</h2>
-      <label class="add-btn" style="cursor:pointer">⬆ Upload file<input type="file" multiple style="display:none" onchange="handleUpload(event,'General')"></label>
-    </div>
-    <div class="drop-zone" id="dz-files" ondragover="dzOver(event,'dz-files')" ondragleave="dzLeave('dz-files')" ondrop="dzDrop(event,'dz-files','General')">
-      <input type="file" multiple onchange="handleUpload(event,'General')">
-      <div class="drop-zone-icon">☁️</div>
-      <div class="drop-zone-text"><strong>Drop any file here</strong> or click to browse</div>
-      <div class="drop-zone-sub">All file types accepted · Stored securely in Supabase</div>
-      <div class="upload-progress" id="prog-files"><div class="upload-progress-bar" id="progbar-files"></div></div>
-    </div>
-    <div id="all-files"></div>
-  </div>
 
 </div>
 
@@ -448,14 +431,24 @@ async function uploadFiles(fileList,section,dzId){
       const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
       if(error) throw error;
       const {data:ud}=sb.storage.from(BUCKET).getPublicUrl(path);
-      S.files.push({id:uid(),name:file.name,size:file.size,path,url:ud.publicUrl,section,date:today()});
+      if(section==='Documents'){
+        // Uploaded files in Documents become doc cards
+        S.docs.push({id:uid(),title:file.name,type:'other',desc:'',
+          url:'',fileUrl:ud.publicUrl,filePath:path,fileSize:file.size,date:today()});
+        addActivity('green','File uploaded: '+file.name,'',today());
+      }else{
+        S.files.push({id:uid(),name:file.name,size:file.size,path,url:ud.publicUrl,section,date:today()});
+      }
       toast('Uploaded: '+file.name);
     }catch(e){console.error(e);toast('Failed: '+file.name);}
   }
   if(barEl) barEl.style.width='100%';
   setTimeout(()=>{if(progEl)progEl.style.display='none';if(barEl)barEl.style.width='0%';},700);
   await saveAll();
+  renderDocs();
   renderFiles();
+  renderActivity();
+  renderOverview();
 }
 
 async function deleteFile(id){
@@ -520,19 +513,23 @@ function switchTab(id,el){
 // ── DOCUMENTS ─────────────────────────────────────────────────────────────────
 function renderDocs(){
   const g=document.getElementById('doc-grid');
-  if(!S.docs.length){g.innerHTML='<div class="empty-state">No documents yet.</div>';updateStats();return;}
+  if(!S.docs.length){g.innerHTML='<div class="empty-state">No documents yet. Add one or drop a file above.</div>';updateStats();return;}
   g.innerHTML=S.docs.map(d=>`
     <div class="doc-card">
       <div class="doc-actions">
         <button onclick="openDocModal(${d.id})">Edit</button>
         <button class="del" onclick="deleteDoc(${d.id})">Delete</button>
       </div>
-      <span class="doc-type ${d.type}">${d.type}</span>
+      <span class="doc-type ${d.type||'other'}">${d.type||'other'}</span>
       <div class="doc-title">${d.title}</div>
-      <div class="doc-desc">${d.desc}</div>
+      ${d.desc?`<div class="doc-desc">${d.desc}</div>`:'<div class="doc-desc" style="flex:1"></div>'}
       <div class="doc-footer">
-        <span>${d.date}</span>
-        ${d.url?`<a class="doc-link" href="${d.url}" target="_blank">Open →</a>`:`<span style="color:#ccc;font-size:12px">No link</span>`}
+        <span>${d.date}${d.fileSize?' · '+fmtSize(d.fileSize):''}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${d.fileUrl?`<a class="doc-link" href="${d.fileUrl}" target="_blank">⬇ Download</a>`:''}
+          ${d.url?`<a class="doc-link" href="${d.url}" target="_blank">Open →</a>`:''}
+          ${!d.fileUrl&&!d.url?`<span style="color:#ccc;font-size:12px">No link</span>`:''}
+        </div>
       </div>
     </div>`).join('');
   updateStats();
@@ -571,9 +568,14 @@ function saveDoc(id){
   closeModal();renderDocs();renderActivity();renderOverview();markDirty();
 }
 
-function deleteDoc(id){
+async function deleteDoc(id){
   if(!confirm('Delete this document?')) return;
-  S.docs=S.docs.filter(x=>x.id!==id);renderDocs();markDirty();
+  const d=S.docs.find(x=>x.id===id);
+  if(d&&d.filePath){
+    try{await sb.storage.from(BUCKET).remove([d.filePath]);}catch(e){console.error(e);}
+  }
+  S.docs=S.docs.filter(x=>x.id!==id);
+  renderDocs();markDirty();
 }
 
 // ── PROTOTYPES ────────────────────────────────────────────────────────────────

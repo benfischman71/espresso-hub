@@ -177,7 +177,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="stat-card"><div class="stat-label">Documents</div><div class="stat-val" id="stat-docs">0</div><div class="stat-sub">in the project</div></div>
       <div class="stat-card"><div class="stat-label">Prototypes</div><div class="stat-val" id="stat-protos">0</div><div class="stat-sub">built</div></div>
       <div class="stat-card"><div class="stat-label">Phase</div><div class="stat-val" style="font-size:16px;padding-top:4px" id="stat-phase">—</div><div class="stat-sub">current</div></div>
-      <div class="stat-card"><div class="stat-label">Goal</div><div class="stat-val" style="font-size:16px;padding-top:4px">125K</div><div class="stat-sub">New espresso subscribers</div></div>
+      <div class="stat-card" onclick="openGoalModal()" style="cursor:pointer" title="Click to edit"><div class="stat-label">Goal ✎</div><div class="stat-val" style="font-size:16px;padding-top:4px" id="stat-goal">125K</div><div class="stat-sub" id="stat-goal-label">New espresso subscribers</div></div>
     </div>
     <div class="section-hd"><h2>Notes</h2><button class="add-btn" onclick="openNoteModal()">+ Add note</button></div>
     <div id="notes-container"></div>
@@ -337,6 +337,7 @@ const DEFAULTS={
     {id:6,num:'Phase 6',title:'Scale acquisition',desc:'Paid search, creator partnerships, Reddit, paid social — only once experience converts.',status:'later'}
   ],
   files:[],
+  goal:{value:'125K',label:'New espresso subscribers'},
   nextId:100
 };
 
@@ -776,6 +777,30 @@ function updateStats(){
   document.getElementById('stat-protos').textContent=S.protos.length;
   const active=S.phases.find(p=>p.status==='active');
   document.getElementById('stat-phase').textContent=active?active.title.split(' ').slice(0,2).join(' '):'—';
+  if(!S.goal) S.goal={value:'125K',label:'New espresso subscribers'};
+  document.getElementById('stat-goal').textContent=S.goal.value;
+  document.getElementById('stat-goal-label').textContent=S.goal.label;
+}
+
+function openGoalModal(){
+  if(!S.goal) S.goal={value:'125K',label:'New espresso subscribers'};
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>Edit Goal</h2>
+    <div class="field"><label>Goal value</label><input id="g-val" value="${S.goal.value.replace(/"/g,'&quot;')}" placeholder="e.g. 125K"></div>
+    <div class="field"><label>Description</label><input id="g-label" value="${S.goal.label.replace(/"/g,'&quot;')}" placeholder="e.g. New espresso subscribers"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveGoal()">Save</button>
+    </div>`);
+}
+
+function saveGoal(){
+  const v=document.getElementById('g-val').value.trim();
+  const l=document.getElementById('g-label').value.trim();
+  if(!v) return;
+  S.goal={value:v,label:l};
+  closeModal();updateStats();markDirty();
 }
 
 function renderAll(){

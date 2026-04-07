@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Espresso Project Hub – Trade Coffee</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F2ED;color:#1a1a18;line-height:1.6;min-height:100vh}
+.hub-header{background:#1a1a18;color:#FAF7F2;padding:28px 32px 24px}
+.hub-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.hub-eyebrow{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888;margin-bottom:6px}
+.hub-title{font-size:26px;font-weight:500}
+.hub-meta{font-size:12px;color:#666;margin-top:6px}
+.status-pill{display:inline-flex;align-items:center;gap:5px;background:#1e3a1e;color:#7ec87e;font-size:11px;padding:4px 10px;border-radius:12px}
+.status-dot{width:6px;height:6px;background:#7ec87e;border-radius:50%}
+.tabs{display:flex;gap:0;border-bottom:1px solid #e0dbd3;background:#fff;padding:0 32px;position:sticky;top:0;z-index:50;overflow-x:auto}
+.tab{padding:14px 18px;font-size:13px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.tab:hover{color:#1a1a18}
+.tab.active{color:#1a1a18;border-bottom-color:#1a1a18}
+.main{max-width:1100px;margin:0 auto;padding:28px 32px}
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-hd h2{font-size:15px;font-weight:600}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.stat-card{background:#fff;border:1px solid #e0dbd3;border-radius:10px;padding:16px 18px}
+.stat-label{font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.stat-val{font-size:24px;font-weight:600;line-height:1}
+.stat-sub{font-size:12px;color:#888;margin-top:4px}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:32px}
+.doc-card{background:#fff;border:1px solid #e0dbd3;border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;position:relative}
+.doc-card:hover .doc-actions{opacity:1}
+.doc-actions{opacity:0;position:absolute;top:12px;right:12px;display:flex;gap:6px;transition:opacity .15s}
+.doc-actions button{font-size:11px;border:1px solid #e0dbd3;background:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;color:#888}
+.doc-actions button:hover{background:#f5f2ed;color:#1a1a18}
+.doc-actions button.del:hover{background:#fff0f0;color:#c04040;border-color:#f0c0c0}
+.doc-type{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:500;padding:3px 8px;border-radius:8px;margin-bottom:10px;width:fit-content}
+.doc-type.strategy{background:#e8e4f0;color:#3C3489}
+.doc-type.marketing{background:#e1f5ee;color:#0F6E56}
+.doc-type.wireframe{background:#fff3e0;color:#854F0B}
+.doc-type.prototype{background:#e6f1fb;color:#0C447C}
+.doc-type.research{background:#fbeaf0;color:#72243E}
+.doc-type.other{background:#f1efe8;color:#666}
+.doc-title{font-size:14px;font-weight:600;margin-bottom:4px;line-height:1.35}
+.doc-desc{font-size:12px;color:#888;flex:1;margin-bottom:12px;line-height:1.5}
+.doc-footer{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#bbb;border-top:1px solid #f0ede8;padding-top:10px;margin-top:auto}
+.doc-link{font-size:12px;color:#4a7fb5;font-weight:500;cursor:pointer}
+.prototype-card{background:#fff;border:1px solid #e0dbd3;border-radius:12px;overflow:hidden;margin-bottom:20px;position:relative}
+.prototype-card:hover .doc-actions{opacity:1}
+.proto-header{padding:16px 20px;border-bottom:1px solid #e0dbd3;display:flex;align-items:center;justify-content:space-between}
+.proto-header h3{font-size:14px;font-weight:600}
+.proto-badges{display:flex;gap:8px;align-items:center}
+.badge{font-size:10px;padding:3px 8px;border-radius:8px;font-weight:500}
+.badge.live{background:#e1f5ee;color:#0F6E56}
+.badge.v1{background:#f1efe8;color:#7a6a4a}
+.proto-frame{width:100%;height:540px;border:none;display:block}
+.proto-footer{padding:12px 20px;border-top:1px solid #f0ede8;display:flex;gap:16px;align-items:center}
+.proto-footer a{font-size:12px;color:#4a7fb5;cursor:pointer}
+.proto-footer span{font-size:12px;color:#bbb}
+.tl-item{display:flex;gap:16px;padding:12px 0;border-bottom:1px solid #f0ede8;align-items:flex-start}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.tl-dot.green{background:#7ec87e}
+.tl-dot.amber{background:#EF9F27}
+.tl-dot.gray{background:#ccc}
+.tl-content{flex:1}
+.tl-content h4{font-size:13px;font-weight:600;margin-bottom:2px}
+.tl-content p{font-size:12px;color:#888}
+.tl-del{font-size:11px;color:#ccc;cursor:pointer;padding:2px 6px;border-radius:4px;border:none;background:none}
+.tl-del:hover{color:#c04040;background:#fff0f0}
+.phases{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.phase-card{border:1px solid #e0dbd3;border-radius:10px;padding:16px;background:#fff;position:relative}
+.phase-card:hover .phase-edit{opacity:1}
+.phase-edit{opacity:0;position:absolute;top:10px;right:10px;font-size:11px;border:1px solid #e0dbd3;background:#fff;border-radius:6px;padding:2px 7px;cursor:pointer;color:#888;transition:opacity .15s}
+.phase-edit:hover{background:#f5f2ed;color:#1a1a18}
+.phase-num{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#aaa;margin-bottom:6px}
+.phase-card h3{font-size:13px;font-weight:600;margin-bottom:6px;padding-right:40px}
+.phase-card p{font-size:12px;color:#888;line-height:1.5}
+.phase-status{display:inline-block;margin-top:10px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:8px;cursor:pointer}
+.ps-active{background:#e1f5ee;color:#0F6E56}
+.ps-next{background:#fff3e0;color:#854F0B}
+.ps-later{background:#f1efe8;color:#aaa}
+.note-card{background:#fffdf7;border:1px solid #e8e2c8;border-radius:10px;padding:16px 18px;margin-bottom:16px;font-size:13px;color:#7a6a3a;line-height:1.7;position:relative}
+.note-card:hover .note-edit-btn{opacity:1}
+.note-edit-btn{opacity:0;position:absolute;top:10px;right:10px;font-size:11px;border:1px solid #e0dbd3;background:#fff;border-radius:6px;padding:2px 7px;cursor:pointer;color:#888;transition:opacity .15s}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.add-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;background:#1a1a18;color:#FAF7F2;border:none;padding:7px 14px;border-radius:16px;cursor:pointer}
+.add-btn:hover{background:#333}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#FAF7F2;border-radius:14px;padding:28px;width:90%;max-width:520px;position:relative;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:18px;font-weight:600;margin-bottom:20px}
+.modal-close{position:absolute;top:14px;right:16px;font-size:20px;cursor:pointer;background:none;border:none;color:#aaa;line-height:1}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;font-weight:500;color:#888;margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+.field input,.field textarea,.field select{width:100%;border:1.5px solid #e0dbd3;border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;background:#fff;color:#1a1a18;outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#1a1a18}
+.field textarea{resize:vertical;min-height:80px}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.modal-btns button{padding:9px 20px;border-radius:20px;font-size:13px;cursor:pointer;font-family:inherit}
+.btn-save{background:#1a1a18;color:#FAF7F2;border:none}
+.btn-save:hover{background:#333}
+.btn-cancel{background:transparent;border:1.5px solid #e0dbd3;color:#888}
+.btn-cancel:hover{border-color:#aaa;color:#1a1a18}
+.btn-del-confirm{background:#c04040;color:#fff;border:none}
+.empty-state{text-align:center;padding:40px;color:#aaa;font-size:13px;border:1.5px dashed #e0dbd3;border-radius:10px;margin-bottom:20px}
+.save-bar{position:fixed;bottom:20px;right:20px;background:#1a1a18;color:#FAF7F2;border-radius:20px;padding:10px 18px;font-size:12px;display:flex;align-items:center;gap:10px;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.save-bar button{background:#FAF7F2;color:#1a1a18;border:none;border-radius:12px;padding:4px 12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:500}
+.save-bar button:hover{background:#e8e4dc}
+/* Setup screen */
+.setup-overlay{position:fixed;inset:0;background:#F5F2ED;z-index:300;display:flex;align-items:center;justify-content:center}
+.setup-box{background:#fff;border:1px solid #e0dbd3;border-radius:16px;padding:40px;width:90%;max-width:480px}
+.setup-box h1{font-size:22px;font-weight:600;margin-bottom:6px}
+.setup-box p{font-size:13px;color:#888;margin-bottom:28px;line-height:1.6}
+.setup-logo{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#aaa;margin-bottom:16px}
+.sync-indicator{position:fixed;top:12px;right:16px;font-size:11px;color:#888;z-index:60;display:flex;align-items:center;gap:5px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#ccc}
+.sync-dot.synced{background:#7ec87e}
+.sync-dot.syncing{background:#EF9F27}
+.sync-dot.error{background:#c04040}
+@media(max-width:680px){
+  .stats-row,.phases{grid-template-columns:1fr 1fr}
+  .main{padding:16px}
+  .tabs{padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<!-- Setup screen (shown if no Supabase credentials) -->
+<div class="setup-overlay" id="setup-overlay" style="display:none">
+  <div class="setup-box">
+    <div class="setup-logo">Trade Coffee · Internal</div>
+    <h1>Espresso Project Hub</h1>
+    <p>Connect your Supabase project to enable cloud sync. Your data will be shared across all devices and browsers.</p>
+    <div class="field"><label>Supabase Project URL</label><input id="setup-url" placeholder="https://xxxx.supabase.co" autocomplete="off"></div>
+    <div class="field"><label>Supabase Anon Key</label><input id="setup-key" placeholder="eyJ..." autocomplete="off"></div>
+    <div class="modal-btns" style="margin-top:8px">
+      <button class="btn-save" onclick="connectSupabase()" style="padding:11px 28px;font-size:14px">Connect & Launch →</button>
+    </div>
+    <p style="margin-top:16px;font-size:11px;color:#ccc;margin-bottom:0">Credentials are stored locally in your browser and never sent anywhere except Supabase.</p>
+  </div>
+</div>
+
+<div class="hub-header">
+  <div class="hub-eyebrow">Trade Coffee · Internal</div>
+  <div class="hub-top">
+    <div class="hub-title">Espresso Project Hub</div>
+    <div class="status-pill"><span class="status-dot"></span>Active</div>
+  </div>
+  <div class="hub-meta">Project 125K · Started March 2025 · Owner: Strategy &amp; Product</div>
+</div>
+
+<div class="sync-indicator" id="sync-indicator">
+  <div class="sync-dot" id="sync-dot"></div>
+  <span id="sync-label">—</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('overview',this)">Overview</div>
+  <div class="tab" onclick="switchTab('docs',this)">Documents</div>
+  <div class="tab" onclick="switchTab('prototypes',this)">Prototypes</div>
+  <div class="tab" onclick="switchTab('activity',this)">Activity</div>
+  <div class="tab" onclick="switchTab('phases',this)">Phases</div>
+</div>
+
+<div class="main">
+  <div class="tab-panel active" id="tab-overview">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Documents</div><div class="stat-val" id="stat-docs">0</div><div class="stat-sub">in the project</div></div>
+      <div class="stat-card"><div class="stat-label">Prototypes</div><div class="stat-val" id="stat-protos">0</div><div class="stat-sub">built</div></div>
+      <div class="stat-card"><div class="stat-label">Phase</div><div class="stat-val" style="font-size:16px;padding-top:4px" id="stat-phase">—</div><div class="stat-sub">current</div></div>
+      <div class="stat-card"><div class="stat-label">Goal</div><div class="stat-val" style="font-size:16px;padding-top:4px">125K</div><div class="stat-sub">New espresso subscribers</div></div>
+    </div>
+    <div class="section-hd"><h2>Notes</h2><button class="add-btn" onclick="openNoteModal()">+ Add note</button></div>
+    <div id="notes-container"></div>
+    <div class="section-hd" style="margin-top:20px"><h2>Recent activity</h2></div>
+    <div id="overview-activity"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-docs">
+    <div class="section-hd"><h2>Documents</h2><button class="add-btn" onclick="openDocModal()">+ Add document</button></div>
+    <div class="doc-grid" id="doc-grid"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-prototypes">
+    <div class="section-hd"><h2>Prototypes</h2><button class="add-btn" onclick="openProtoModal()">+ Add prototype</button></div>
+    <div id="proto-container"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-activity">
+    <div class="section-hd"><h2>Activity log</h2><button class="add-btn" onclick="openActivityModal()">+ Add entry</button></div>
+    <div id="activity-list"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-phases">
+    <div class="section-hd"><h2>Project phases</h2><button class="add-btn" onclick="openPhaseModal()">+ Add phase</button></div>
+    <div class="phases" id="phases-grid"></div>
+  </div>
+</div>
+
+<div class="save-bar" id="save-bar" style="display:none">
+  <span>Unsaved changes</span>
+  <button onclick="saveAll()">Save</button>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+// ── SUPABASE SETUP ────────────────────────────────────────────────────────────
+const HUB_ID = 'espresso-hub';
+let supabase = null;
+
+function getCredentials(){
+  return {
+    url: localStorage.getItem('sb-espresso-url'),
+    key: localStorage.getItem('sb-espresso-key')
+  };
+}
+
+function initSupabase(url, key){
+  supabase = window.supabase.createClient(url, key);
+}
+
+async function connectSupabase(){
+  const url = document.getElementById('setup-url').value.trim();
+  const key = document.getElementById('setup-key').value.trim();
+  if(!url || !key){ alert('Please enter both fields.'); return; }
+  localStorage.setItem('sb-espresso-url', url);
+  localStorage.setItem('sb-espresso-key', key);
+  initSupabase(url, key);
+  document.getElementById('setup-overlay').style.display = 'none';
+  await loadFromSupabase();
+  renderAll();
+}
+
+function setSyncStatus(state){
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + state;
+  lbl.textContent = state === 'synced' ? 'Saved' : state === 'syncing' ? 'Saving…' : state === 'error' ? 'Save failed' : '—';
+}
+
+// ── DEFAULT DATA ──────────────────────────────────────────────────────────────
+const DEFAULTS = {
+  docs:[
+    {id:1,type:'strategy',title:'Building the Leading Destination for Espresso at Home',desc:'Full Project 125K strategy. Opportunity thesis, vertical model, sequencing across 6 phases. The core document driving all espresso work.',date:'Apr 7',url:''},
+    {id:2,type:'marketing',title:'Espresso Beachhead Marketing Strategy',desc:'Channel-by-channel acquisition plan. Paid search, SEO, editorial, YouTube/creators, paid social, Reddit, email/SMS, and product-led marketing.',date:'Apr 7',url:''},
+    {id:3,type:'wireframe',title:'Espresso HQ – Desktop & Mobile Wireframes',desc:'10-section wireframe: hero, segmentation, top picks, quiz CTA, compare, education, equipment, starter kit, social proof, final CTA.',date:'Apr 7',url:''},
+    {id:4,type:'research',title:'Traffic & Conversion Validation',desc:'Pending. Pull on existing espresso traffic, conversion vs non-espresso, AOV, retention, bounce, and drop-off. Required before Phase 3 build.',date:'Pending',url:''}
+  ],
+  protos:[
+    {id:1,title:'Espresso HQ – Full Page Prototype',desc:'10-section landing page with interactive quiz, coffee cards, compare, equipment matching, starter kit.',badge:'v1',url:'https://claude.ai/artifacts/latest/848cffad-c4b2-422c-9003-00dd3fbcd54a',date:'Apr 7'}
+  ],
+  activity:[
+    {id:5,status:'amber',title:'Traffic & conversion validation — pending',desc:'Need pull on espresso vs non-espresso cohort data before proceeding to build.',date:'Next'},
+    {id:4,status:'green',title:'Strategy document v1 complete',desc:'Full Project 125K espresso strategy — opportunity, vertical thesis, sequencing.',date:'Apr 7'},
+    {id:3,status:'green',title:'Espresso HQ wireframes finalized',desc:'Desktop + mobile wireframes across all 10 sections.',date:'Apr 7'},
+    {id:2,status:'green',title:'Marketing beachhead strategy uploaded',desc:'Channel-by-channel plan covering all acquisition channels.',date:'Apr 7'},
+    {id:1,status:'green',title:'Espresso HQ prototype v1 built',desc:'Full 10-section page with interactive quiz, coffee cards, compare, and equipment matching.',date:'Apr 7'}
+  ],
+  notes:[
+    {id:1,text:'<strong>Critical reminder:</strong> Do not proceed to full build before validating the traffic and conversion opportunity. Espresso-acquired customers must show higher conversion, deeper engagement, and better retention than average.'}
+  ],
+  phases:[
+    {id:1,num:'Phase 1 · Now',title:'Validate opportunity',desc:'Assess existing espresso traffic, conversion rates, AOV, and retention vs non-espresso cohorts.',status:'active'},
+    {id:2,num:'Phase 2',title:'Define position',desc:'Decide what Trade stands for in espresso — easiest path, most trusted guide, or best results.',status:'next'},
+    {id:3,num:'Phase 3',title:'Build Espresso HQ',desc:'Launch dedicated destination. Segmented journeys, quiz, comparison tools, equipment matching.',status:'next'},
+    {id:4,num:'Phase 4',title:'Launch quiz + compare',desc:'Espresso-specific quiz with machine type, grinder quality, taste, and experience inputs.',status:'later'},
+    {id:5,num:'Phase 5',title:'Flagship editorial',desc:'Build the "We tested 40+ roasters" authority asset. Feeds SEO, paid, and retargeting.',status:'later'},
+    {id:6,num:'Phase 6',title:'Scale acquisition',desc:'Paid search, creator partnerships, Reddit, paid social — only once experience converts.',status:'later'}
+  ],
+  nextId:100
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let S = JSON.parse(JSON.stringify(DEFAULTS));
+let dirty = false;
+
+async function loadFromSupabase(){
+  if(!supabase) return;
+  setSyncStatus('syncing');
+  try{
+    const { data, error } = await supabase
+      .from('hub_data')
+      .select('state')
+      .eq('id', HUB_ID)
+      .maybeSingle();
+    if(error) throw error;
+    if(data && data.state){
+      S = data.state;
+    }
+    setSyncStatus('synced');
+  }catch(e){
+    console.error('Load error:', e);
+    setSyncStatus('error');
+  }
+}
+
+function markDirty(){
+  dirty = true;
+  document.getElementById('save-bar').style.display = 'flex';
+}
+
+async function saveAll(){
+  document.getElementById('save-bar').style.display = 'none';
+  dirty = false;
+  if(!supabase){ return; }
+  setSyncStatus('syncing');
+  try{
+    const { error } = await supabase
+      .from('hub_data')
+      .upsert({ id: HUB_ID, state: S, updated_at: new Date().toISOString() });
+    if(error) throw error;
+    setSyncStatus('synced');
+  }catch(e){
+    console.error('Save error:', e);
+    setSyncStatus('error');
+    document.getElementById('save-bar').style.display = 'flex';
+  }
+}
+
+// Auto-save every 30s
+setInterval(() => { if(dirty) saveAll(); }, 30000);
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function uid(){ return ++S.nextId; }
+function today(){ const d=new Date(); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); }
+function openModal(html){
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+document.getElementById('modal-overlay').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(id,el){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── DOCUMENTS ─────────────────────────────────────────────────────────────────
+function renderDocs(){
+  const g=document.getElementById('doc-grid');
+  if(!S.docs.length){g.innerHTML='<div class="empty-state">No documents yet. Add one to get started.</div>';updateStats();return;}
+  g.innerHTML=S.docs.map(d=>`
+    <div class="doc-card">
+      <div class="doc-actions">
+        <button onclick="openDocModal(${d.id})">Edit</button>
+        <button class="del" onclick="deleteDoc(${d.id})">Delete</button>
+      </div>
+      <span class="doc-type ${d.type}">${d.type}</span>
+      <div class="doc-title">${d.title}</div>
+      <div class="doc-desc">${d.desc}</div>
+      <div class="doc-footer">
+        <span>${d.date}</span>
+        ${d.url?`<a class="doc-link" href="${d.url}" target="_blank">Open →</a>`:`<span style="color:#ccc;font-size:12px">No link</span>`}
+      </div>
+    </div>`).join('');
+  updateStats();
+}
+
+function openDocModal(id){
+  const d=id?S.docs.find(x=>x.id===id):{};
+  const types=['strategy','marketing','wireframe','prototype','research','other'];
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>${id?'Edit':'Add'} Document</h2>
+    <div class="field"><label>Title</label><input id="f-title" value="${(d.title||'').replace(/"/g,'&quot;')}" placeholder="Document title"></div>
+    <div class="field"><label>Type</label><select id="f-type">${types.map(t=>`<option value="${t}"${(d.type||'')==t?' selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="field"><label>Description</label><textarea id="f-desc">${d.desc||''}</textarea></div>
+    <div class="field"><label>Link (optional)</label><input id="f-url" value="${(d.url||'').replace(/"/g,'&quot;')}" placeholder="https://..."></div>
+    <div class="modal-btns">
+      ${id?`<button class="btn-del-confirm" onclick="deleteDoc(${id});closeModal()">Delete</button>`:''}
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveDoc(${id||0})">Save</button>
+    </div>`);
+}
+
+function saveDoc(id){
+  const t=document.getElementById('f-title').value.trim();
+  if(!t) return;
+  if(id){
+    const d=S.docs.find(x=>x.id===id);
+    d.title=t; d.type=document.getElementById('f-type').value;
+    d.desc=document.getElementById('f-desc').value.trim();
+    d.url=document.getElementById('f-url').value.trim();
+  }else{
+    S.docs.push({id:uid(),title:t,type:document.getElementById('f-type').value,
+      desc:document.getElementById('f-desc').value.trim(),
+      url:document.getElementById('f-url').value.trim(),date:today()});
+    addActivity('green',`Document added: ${t}`,'',today());
+  }
+  closeModal(); renderDocs(); renderActivity(); renderOverview(); markDirty();
+}
+
+function deleteDoc(id){
+  if(!confirm('Delete this document?')) return;
+  S.docs=S.docs.filter(x=>x.id!==id);
+  renderDocs(); markDirty();
+}
+
+// ── PROTOTYPES ────────────────────────────────────────────────────────────────
+function renderProtos(){
+  const c=document.getElementById('proto-container');
+  if(!S.protos.length){c.innerHTML='<div class="empty-state">No prototypes yet. Add one to get started.</div>';updateStats();return;}
+  c.innerHTML=S.protos.map(p=>`
+    <div class="prototype-card">
+      <div class="doc-actions" style="top:14px;right:14px">
+        <button onclick="openProtoModal(${p.id})">Edit</button>
+        <button class="del" onclick="deleteProto(${p.id})">Delete</button>
+      </div>
+      <div class="proto-header">
+        <div>
+          <h3>${p.title}</h3>
+          <div style="font-size:12px;color:#aaa;margin-top:3px">${p.desc}</div>
+        </div>
+        <div class="proto-badges"><span class="badge v1">${p.badge||'v1'}</span><span class="badge live">Live</span></div>
+      </div>
+      ${p.url?`<iframe class="proto-frame" src="${p.url}" title="${p.title}"></iframe>`
+        :'<div style="height:120px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#aaa">No URL provided</div>'}
+      <div class="proto-footer">
+        ${p.url?`<a href="${p.url}" target="_blank">Open full screen ↗</a><span>·</span>`:''}
+        <span style="margin-left:auto;color:#bbb">Built ${p.date}</span>
+      </div>
+    </div>`).join('');
+  updateStats();
+}
+
+function openProtoModal(id){
+  const p=id?S.protos.find(x=>x.id===id):{};
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>${id?'Edit':'Add'} Prototype</h2>
+    <div class="field"><label>Title</label><input id="p-title" value="${(p.title||'').replace(/"/g,'&quot;')}" placeholder="Prototype name"></div>
+    <div class="field"><label>Description</label><textarea id="p-desc">${p.desc||''}</textarea></div>
+    <div class="field"><label>Version label</label><input id="p-badge" value="${p.badge||'v1'}" placeholder="v1"></div>
+    <div class="field"><label>Embed URL</label><input id="p-url" value="${(p.url||'').replace(/"/g,'&quot;')}" placeholder="https://claude.ai/artifacts/..."></div>
+    <div class="modal-btns">
+      ${id?`<button class="btn-del-confirm" onclick="deleteProto(${id});closeModal()">Delete</button>`:''}
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveProto(${id||0})">Save</button>
+    </div>`);
+}
+
+function saveProto(id){
+  const t=document.getElementById('p-title').value.trim();
+  if(!t) return;
+  if(id){
+    const p=S.protos.find(x=>x.id===id);
+    p.title=t; p.desc=document.getElementById('p-desc').value.trim();
+    p.badge=document.getElementById('p-badge').value.trim()||'v1';
+    p.url=document.getElementById('p-url').value.trim();
+  }else{
+    S.protos.push({id:uid(),title:t,desc:document.getElementById('p-desc').value.trim(),
+      badge:document.getElementById('p-badge').value.trim()||'v1',
+      url:document.getElementById('p-url').value.trim(),date:today()});
+    addActivity('green',`Prototype added: ${t}`,'',today());
+  }
+  closeModal(); renderProtos(); renderActivity(); renderOverview(); markDirty();
+}
+
+function deleteProto(id){
+  if(!confirm('Delete this prototype?')) return;
+  S.protos=S.protos.filter(x=>x.id!==id);
+  renderProtos(); markDirty();
+}
+
+// ── ACTIVITY ──────────────────────────────────────────────────────────────────
+function addActivity(status,title,desc,date){
+  S.activity.unshift({id:uid(),status,title,desc,date});
+}
+
+function renderActivity(){
+  const el=document.getElementById('activity-list');
+  if(!S.activity.length){el.innerHTML='<div class="empty-state">No activity yet.</div>';return;}
+  el.innerHTML=S.activity.map(a=>`
+    <div class="tl-item">
+      <div class="tl-dot ${a.status}"></div>
+      <div class="tl-content">
+        <h4>${a.title}</h4>
+        ${a.desc?`<p>${a.desc}</p>`:''}
+      </div>
+      <div style="font-size:11px;color:#bbb;white-space:nowrap">${a.date}</div>
+      <button class="tl-del" onclick="deleteActivity(${a.id})" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+function openActivityModal(){
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>Add Activity</h2>
+    <div class="field"><label>Title</label><input id="a-title" placeholder="What happened?"></div>
+    <div class="field"><label>Details (optional)</label><textarea id="a-desc"></textarea></div>
+    <div class="field"><label>Status</label>
+      <select id="a-status">
+        <option value="green">Done / Complete</option>
+        <option value="amber">In progress / Pending</option>
+        <option value="gray">Note / Blocked</option>
+      </select>
+    </div>
+    <div class="field"><label>Date</label><input id="a-date" value="${today()}"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveActivity()">Save</button>
+    </div>`);
+}
+
+function saveActivity(){
+  const t=document.getElementById('a-title').value.trim();
+  if(!t) return;
+  addActivity(document.getElementById('a-status').value,t,
+    document.getElementById('a-desc').value.trim(),
+    document.getElementById('a-date').value.trim()||today());
+  closeModal(); renderActivity(); renderOverview(); markDirty();
+}
+
+function deleteActivity(id){
+  S.activity=S.activity.filter(x=>x.id!==id);
+  renderActivity(); renderOverview(); markDirty();
+}
+
+// ── PHASES ────────────────────────────────────────────────────────────────────
+function renderPhases(){
+  const g=document.getElementById('phases-grid');
+  const map={active:'ps-active',next:'ps-next',later:'ps-later'};
+  const label={active:'In progress',next:'Up next',later:'Later'};
+  if(!S.phases.length){g.innerHTML='<div class="empty-state" style="grid-column:1/-1">No phases yet.</div>';return;}
+  g.innerHTML=S.phases.map(p=>`
+    <div class="phase-card">
+      <button class="phase-edit" onclick="openPhaseModal(${p.id})">Edit</button>
+      <div class="phase-num">${p.num}</div>
+      <h3>${p.title}</h3>
+      <p>${p.desc}</p>
+      <span class="phase-status ${map[p.status]||'ps-later'}" onclick="cyclePhaseStatus(${p.id})">${label[p.status]||'Later'}</span>
+    </div>`).join('');
+}
+
+function cyclePhaseStatus(id){
+  const p=S.phases.find(x=>x.id===id);
+  const cycle={active:'next',next:'later',later:'active'};
+  p.status=cycle[p.status]||'later';
+  renderPhases(); updateStats(); markDirty();
+}
+
+function openPhaseModal(id){
+  const p=id?S.phases.find(x=>x.id===id):{};
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>${id?'Edit':'Add'} Phase</h2>
+    <div class="field"><label>Phase label</label><input id="ph-num" value="${(p.num||'').replace(/"/g,'&quot;')}" placeholder="Phase 7"></div>
+    <div class="field"><label>Title</label><input id="ph-title" value="${(p.title||'').replace(/"/g,'&quot;')}" placeholder="Phase title"></div>
+    <div class="field"><label>Description</label><textarea id="ph-desc">${p.desc||''}</textarea></div>
+    <div class="field"><label>Status</label>
+      <select id="ph-status">
+        <option value="active"${p.status==='active'?' selected':''}>In progress</option>
+        <option value="next"${p.status==='next'?' selected':''}>Up next</option>
+        <option value="later"${(!p.status||p.status==='later')?' selected':''}>Later</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      ${id?`<button class="btn-del-confirm" onclick="deletePhase(${id});closeModal()">Delete</button>`:''}
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="savePhase(${id||0})">Save</button>
+    </div>`);
+}
+
+function savePhase(id){
+  const t=document.getElementById('ph-title').value.trim();
+  if(!t) return;
+  if(id){
+    const p=S.phases.find(x=>x.id===id);
+    p.num=document.getElementById('ph-num').value.trim();
+    p.title=t; p.desc=document.getElementById('ph-desc').value.trim();
+    p.status=document.getElementById('ph-status').value;
+  }else{
+    S.phases.push({id:uid(),num:document.getElementById('ph-num').value.trim(),
+      title:t,desc:document.getElementById('ph-desc').value.trim(),
+      status:document.getElementById('ph-status').value});
+  }
+  closeModal(); renderPhases(); updateStats(); markDirty();
+}
+
+function deletePhase(id){
+  if(!confirm('Delete this phase?')) return;
+  S.phases=S.phases.filter(x=>x.id!==id);
+  renderPhases(); markDirty();
+}
+
+// ── NOTES ─────────────────────────────────────────────────────────────────────
+function renderNotes(){
+  const c=document.getElementById('notes-container');
+  if(!S.notes.length){c.innerHTML='<div class="empty-state" style="margin-bottom:20px">No notes yet.</div>';return;}
+  c.innerHTML=S.notes.map(n=>`
+    <div class="note-card">
+      <button class="note-edit-btn" onclick="openNoteModal(${n.id})">Edit</button>
+      ${n.text}
+    </div>`).join('');
+}
+
+function openNoteModal(id){
+  const n=id?S.notes.find(x=>x.id===id):{};
+  const raw=n.text?(n.text.replace(/<strong>/g,'').replace(/<\/strong>/g,'')):'';
+  openModal(`
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2>${id?'Edit':'Add'} Note</h2>
+    <div class="field"><label>Note text</label><textarea id="n-text" style="min-height:120px">${raw}</textarea></div>
+    <div class="modal-btns">
+      ${id?`<button class="btn-del-confirm" onclick="deleteNote(${id});closeModal()">Delete</button>`:''}
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveNote(${id||0})">Save</button>
+    </div>`);
+}
+
+function saveNote(id){
+  const t=document.getElementById('n-text').value.trim();
+  if(!t) return;
+  if(id){ S.notes.find(x=>x.id===id).text=t; }
+  else{ S.notes.push({id:uid(),text:t}); }
+  closeModal(); renderNotes(); markDirty();
+}
+
+function deleteNote(id){
+  if(!confirm('Delete this note?')) return;
+  S.notes=S.notes.filter(x=>x.id!==id);
+  renderNotes(); markDirty();
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────────────
+function renderOverview(){
+  const el=document.getElementById('overview-activity');
+  const recent=S.activity.slice(0,4);
+  if(!recent.length){el.innerHTML='<div class="empty-state">No activity yet.</div>';return;}
+  el.innerHTML=recent.map(a=>`
+    <div class="tl-item">
+      <div class="tl-dot ${a.status}"></div>
+      <div class="tl-content"><h4>${a.title}</h4>${a.desc?`<p>${a.desc}</p>`:''}</div>
+      <div style="font-size:11px;color:#bbb;white-space:nowrap">${a.date}</div>
+    </div>`).join('');
+}
+
+function updateStats(){
+  document.getElementById('stat-docs').textContent=S.docs.length;
+  document.getElementById('stat-protos').textContent=S.protos.length;
+  const active=S.phases.find(p=>p.status==='active');
+  document.getElementById('stat-phase').textContent=active?active.title.split(' ').slice(0,2).join(' '):'—';
+}
+
+function renderAll(){
+  renderDocs(); renderProtos(); renderActivity(); renderPhases(); renderNotes(); renderOverview(); updateStats();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init(){
+  const { url, key } = getCredentials();
+  if(!url || !key){
+    document.getElementById('setup-overlay').style.display='flex';
+    renderAll(); // render with defaults while waiting
+    return;
+  }
+  initSupabase(url, key);
+  await loadFromSupabase();
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>

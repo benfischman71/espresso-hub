@@ -128,20 +128,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </head>
 <body>
 
-<!-- Setup screen (shown if no Supabase credentials) -->
-<div class="setup-overlay" id="setup-overlay" style="display:none">
-  <div class="setup-box">
-    <div class="setup-logo">Trade Coffee · Internal</div>
-    <h1>Espresso Project Hub</h1>
-    <p>Connect your Supabase project to enable cloud sync. Your data will be shared across all devices and browsers.</p>
-    <div class="field"><label>Supabase Project URL</label><input id="setup-url" placeholder="https://xxxx.supabase.co" autocomplete="off"></div>
-    <div class="field"><label>Supabase Anon Key</label><input id="setup-key" placeholder="eyJ..." autocomplete="off"></div>
-    <div class="modal-btns" style="margin-top:8px">
-      <button class="btn-save" onclick="connectSupabase()" style="padding:11px 28px;font-size:14px">Connect & Launch →</button>
-    </div>
-    <p style="margin-top:16px;font-size:11px;color:#ccc;margin-bottom:0">Credentials are stored locally in your browser and never sent anywhere except Supabase.</p>
-  </div>
-</div>
 
 <div class="hub-header">
   <div class="hub-eyebrow">Trade Coffee · Internal</div>
@@ -212,29 +198,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 // ── SUPABASE SETUP ────────────────────────────────────────────────────────────
 const HUB_ID = 'espresso-hub';
+const SB_URL = 'https://oaaluasdaglueeczayae.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9hYWx1YXNkYWdsdWVlY3pheWFlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1ODQ4ODMsImV4cCI6MjA5MTE2MDg4M30.wWbUoUAV3tUxrGjDV1Jr4aOzlwb5SghbW2icS9WKVE4';
 let supabase = null;
 
-function getCredentials(){
-  return {
-    url: localStorage.getItem('sb-espresso-url'),
-    key: localStorage.getItem('sb-espresso-key')
-  };
-}
-
-function initSupabase(url, key){
-  supabase = window.supabase.createClient(url, key);
-}
-
-async function connectSupabase(){
-  const url = document.getElementById('setup-url').value.trim();
-  const key = document.getElementById('setup-key').value.trim();
-  if(!url || !key){ alert('Please enter both fields.'); return; }
-  localStorage.setItem('sb-espresso-url', url);
-  localStorage.setItem('sb-espresso-key', key);
-  initSupabase(url, key);
-  document.getElementById('setup-overlay').style.display = 'none';
-  await loadFromSupabase();
-  renderAll();
+function initSupabase(){
+  supabase = window.supabase.createClient(SB_URL, SB_KEY);
 }
 
 function setSyncStatus(state){
@@ -657,13 +626,7 @@ function renderAll(){
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init(){
-  const { url, key } = getCredentials();
-  if(!url || !key){
-    document.getElementById('setup-overlay').style.display='flex';
-    renderAll(); // render with defaults while waiting
-    return;
-  }
-  initSupabase(url, key);
+  initSupabase();
   await loadFromSupabase();
   renderAll();
 }
